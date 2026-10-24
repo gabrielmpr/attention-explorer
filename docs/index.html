@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Attention Explorer</title>
+<style>
+:root {
+  --bg: #f7f7f5; --panel: #ffffff; --fg: #1d2127; --muted: #6b7280; --line: #e3e4e8;
+  --heat: 224, 122, 95; --accent: #3d6fd9; --sel: #1d2127;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1116; --panel: #151a21; --fg: #d7dae0; --muted: #8b93a1; --line: #252c37;
+    --heat: 224, 122, 95; --accent: #8ab4f8; --sel: #f2cc8f;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1116; --panel: #151a21; --fg: #d7dae0; --muted: #8b93a1; --line: #252c37;
+  --heat: 224, 122, 95; --accent: #8ab4f8; --sel: #f2cc8f;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
+h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
+h2 { font-size: 17px; margin: 40px 0 10px; }
+p { margin: 0 0 12px; max-width: 70ch; }
+.muted { color: var(--muted); }
+a { color: var(--accent); }
+.controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin: 22px 0 14px; }
+.group { display: flex; gap: 6px; align-items: center; }
+.group > span { color: var(--muted); font-size: 13px; margin-right: 4px; }
+button { font: inherit; font-size: 13px; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
+  border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+button.on { border-color: var(--sel); box-shadow: inset 0 0 0 1px var(--sel); }
+.layout { display: grid; grid-template-columns: 1fr 260px; gap: 18px; }
+@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
+.layout > *, .grid > *, .controls > * { min-width: 0; }
+@media (max-width: 560px) { #text { font-size: 18px; } }
+.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
+#text { font: 22px/1.9 ui-monospace, "SF Mono", Menlo, monospace; word-break: break-all; user-select: none; }
+#text span { padding: 2px 1px; border-radius: 3px; cursor: pointer; }
+#text span.q { outline: 2px solid var(--sel); outline-offset: 1px; }
+#text span.future { color: var(--muted); opacity: 0.45; }
+.ws { color: var(--muted); }
+.hint { font-size: 13px; color: var(--muted); margin-top: 10px; }
+.pred-row { display: grid; grid-template-columns: 28px 1fr 46px; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
+.pred-row code { font: 16px ui-monospace, Menlo, monospace; text-align: center; }
+.bar { height: 10px; background: var(--accent); border-radius: 3px; }
+.stat { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--line); }
+.stat:last-child { border-bottom: 0; }
+.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+@media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+.mini { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; cursor: pointer; }
+.mini.on { border-color: var(--sel); box-shadow: inset 0 0 0 1px var(--sel); }
+.mini canvas { width: 100%; aspect-ratio: 1; display: block; image-rendering: pixelated; border-radius: 4px; }
+.mini .lab { font-size: 12px; display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); }
+.mini .lab b { color: var(--fg); font-weight: 600; }
+figure { margin: 18px 0; }
+figure img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
+figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 75ch; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Attention Explorer</h1>
+  <p class="muted">A 0.8M-parameter character-level GPT trained on Shakespeare, opened up. Pick a character and see which earlier characters each attention head reads from when predicting what comes next.</p>
+
+  <div class="controls">
+    <div class="group"><span>passage</span><button id="prev">←</button><span id="pidx" style="color:var(--fg);margin:0 4px"></span><button id="next">→</button></div>
+    <div class="group" id="layers"><span>layer</span></div>
+    <div class="group" id="heads"><span>head</span></div>
+  </div>
+
+  <div class="layout">
+    <div class="panel">
+      <div id="text"></div>
+      <div class="hint">Hover or tap a character. Shading = how much the selected head, at that position, attends to each earlier character. Later characters are greyed out because the causal mask hides them.</div>
+    </div>
+    <div class="panel">
+      <div class="muted" style="font-size:13px;margin-bottom:6px">After <code id="qchar"></code>, the model predicts</div>
+      <div id="preds"></div>
+      <div class="muted" style="font-size:13px;margin:16px 0 6px">Selected head</div>
+      <div id="stats"></div>
+    </div>
+  </div>
+
+  <h2>All 16 heads on this passage</h2>
+  <p class="muted">Each square is one head's full attention matrix: row = the character doing the looking, column = the character looked at. Everything above the diagonal is the future, so it's empty. The line marks the selected character. Δ is how much validation loss rises when that head is switched off.</p>
+  <div class="grid" id="grid"></div>
+
+  <h2>What the heads do</h2>
+  <figure><img src="figures/attention_by_offset.png" alt="Average attention by distance for each head">
+    <figcaption>Average attention by distance. Layer 0 is almost all lookup: three heads read the previous character (80–89% of their attention) and one, L0H2, reads exactly two characters back. Layer 1 reads a window of 1–4 characters. Layers 2 and 3 spread out over the whole context, which is where word- and line-level information can come from.</figcaption></figure>
+  <figure><img src="figures/ablation.png" alt="Validation loss increase when each head is switched off">
+    <figcaption>Switching off any single head barely matters (+0.004 to +0.015). The previous-character heads cover for each other: knock out one and loss rises by at most 0.009, knock out all four together and it rises by 0.388. Early layers matter most: removing layer 0's attention costs 0.295, layer 3's only 0.038.</figcaption></figure>
+  <figure><img src="figures/logit_lens.png" alt="Logit lens">
+    <figcaption>Logit lens: decode the residual stream after each block with the final LayerNorm and output layer. Loss falls 3.51 → 2.76 → 2.14 → 1.80 → 1.64 with depth. By the last block the model knows a name in capitals ends in a colon and a newline, and that a capital follows the newline.</figcaption></figure>
+  <figure><img src="figures/embeddings.png" alt="Embeddings">
+    <figcaption>Left: the 65 character embeddings projected to 2-D. The structure is weak at this size; punctuation drifts to one corner, but vowels and consonants don't separate cleanly. Right: position embeddings are close to orthogonal to each other. With only 64 positions and 128 dimensions, the model gave each position its own direction instead of learning a smooth code.</figcaption></figure>
+  <figure><img src="figures/timelapse.gif" alt="Training timelapse">
+    <figcaption>Samples from the same random seed as training goes on.</figcaption></figure>
+</main>
+
+<script>
+let D, P = 0, L = 0, H = 0, Q = 20;
+const $ = id => document.getElementById(id);
+const show = c => c === '\n' ? '⏎' : c === ' ' ? '·' : c;
+
+// unpack row t of the lower triangle
+const row = (p, l, h, t) => D.passages[p].att[l][h].slice(t * (t + 1) / 2, t * (t + 1) / 2 + t + 1).map(v => v / 255);
+
+function buttons(id, n, get, set) {
+  const g = $(id);
+  for (let i = 0; i < n; i++) {
+    const b = document.createElement('button');
+    b.textContent = i;
+    b.onclick = () => { set(i); render(); };
+    g.appendChild(b);
+  }
+  return () => [...g.querySelectorAll('button')].forEach((b, i) => b.classList.toggle('on', i === get()));
+}
+
+let markLayers, markHeads;
+
+function renderText() {
+  const text = D.passages[P].text, w = row(P, L, H, Q);
+  const mx = Math.max(...w);
+  $('text').innerHTML = '';
+  [...text].forEach((c, j) => {
+    const s = document.createElement('span');
+    s.textContent = show(c);
+    if (c === ' ' || c === '\n') s.classList.add('ws');
+    if (j <= Q) s.style.background = `rgba(var(--heat), ${(w[j] / mx) * 0.85})`;
+    else s.classList.add('future');
+    if (j === Q) s.classList.add('q');
+    s.title = j <= Q ? `attention ${(w[j] * 100).toFixed(1)}%` : 'masked (future)';
+    s.onmouseenter = () => { if (Q !== j) { Q = j; render(); } };
+    s.onclick = () => { Q = j; render(); };
+    $('text').appendChild(s);
+    if (c === '\n') $('text').appendChild(document.createElement('br'));
+  });
+}
+
+function renderSide() {
+  const p = D.passages[P];
+  $('qchar').textContent = `"${show(p.text[Q])}"`;
+  $('preds').innerHTML = p.top[Q].map(([c, v]) =>
+    `<div class="pred-row"><code>${show(c)}</code><div class="bar" style="width:${Math.max(v * 100, 1)}%"></div><span>${(v * 100).toFixed(0)}%</span></div>`).join('');
+  const s = D.heads[L * D.n_head + H];
+  $('stats').innerHTML = [
+    ['val loss if switched off', `+${s.delta.toFixed(3)}`],
+    ['attention to itself', `${(s.self * 100).toFixed(0)}%`],
+    ['to the previous char', `${(s.prev * 100).toFixed(0)}%`],
+    ['to spaces / newlines', `${(s.space * 100).toFixed(0)}%`],
+    ['mean distance back', `${s.dist.toFixed(1)} chars`],
+  ].map(([k, v]) => `<div class="stat"><span class="muted">${k}</span><span>${v}</span></div>`).join('');
+}
+
+function renderGrid() {
+  const g = $('grid'), T = D.passages[P].text.length;
+  if (!g.children.length) {
+    for (let l = 0; l < D.n_layer; l++) for (let h = 0; h < D.n_head; h++) {
+      const d = document.createElement('div');
+      d.className = 'mini';
+      d.innerHTML = `<canvas width="${T}" height="${T}"></canvas><div class="lab"><b>L${l} H${h}</b><span>Δ +${D.heads[l * D.n_head + h].delta.toFixed(3)}</span></div>`;
+      d.onclick = () => { L = l; H = h; render(); };
+      g.appendChild(d);
+    }
+  }
+  const heat = getComputedStyle(document.documentElement).getPropertyValue('--heat').split(',').map(Number);
+  [...g.children].forEach((d, k) => {
+    const l = Math.floor(k / D.n_head), h = k % D.n_head;
+    d.classList.toggle('on', l === L && h === H);
+    const cv = d.querySelector('canvas'), ctx = cv.getContext('2d'), img = ctx.createImageData(T, T);
+    for (let t = 0; t < T; t++) {
+      const w = row(P, l, h, t);
+      for (let j = 0; j <= t; j++) {
+        const i = (t * T + j) * 4, a = Math.sqrt(w[j]);
+        img.data[i] = heat[0]; img.data[i + 1] = heat[1]; img.data[i + 2] = heat[2]; img.data[i + 3] = 255 * a;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--sel');
+    ctx.globalAlpha = 0.5; ctx.fillRect(0, Q, T, 0.6); ctx.globalAlpha = 1;
+  });
+}
+
+function render() {
+  $('pidx').textContent = `${P + 1} / ${D.passages.length}`;
+  Q = Math.min(Q, D.passages[P].text.length - 1);
+  markLayers(); markHeads(); renderText(); renderSide(); renderGrid();
+}
+
+fetch('data.json').then(r => r.json()).then(d => {
+  D = d;
+  // open on the head that matters most
+  const best = D.heads.reduce((a, b) => b.delta > a.delta ? b : a);
+  L = best.layer; H = best.head;
+  markLayers = buttons('layers', D.n_layer, () => L, i => L = i);
+  markHeads = buttons('heads', D.n_head, () => H, i => H = i);
+  $('prev').onclick = () => { P = (P + D.passages.length - 1) % D.passages.length; render(); };
+  $('next').onclick = () => { P = (P + 1) % D.passages.length; render(); };
+  render();
+});
+</script>
+</body>
+</html>

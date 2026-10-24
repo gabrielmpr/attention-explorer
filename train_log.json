@@ -1,0 +1,309 @@
+{
+ "losses": [
+  {
+   "step": 0,
+   "train": 4.333888854980469,
+   "val": 4.3330042266845705
+  },
+  {
+   "step": 100,
+   "train": 2.488419690132141,
+   "val": 2.4921321201324464
+  },
+  {
+   "step": 200,
+   "train": 2.3204468488693237,
+   "val": 2.328484754562378
+  },
+  {
+   "step": 300,
+   "train": 2.1889859437942505,
+   "val": 2.202390766143799
+  },
+  {
+   "step": 400,
+   "train": 2.082110548019409,
+   "val": 2.11830482006073
+  },
+  {
+   "step": 500,
+   "train": 2.018661711215973,
+   "val": 2.064400382041931
+  },
+  {
+   "step": 600,
+   "train": 1.963147187232971,
+   "val": 2.0394095849990843
+  },
+  {
+   "step": 700,
+   "train": 1.9049704456329346,
+   "val": 1.9930918526649475
+  },
+  {
+   "step": 800,
+   "train": 1.8521134638786316,
+   "val": 1.9473070120811462
+  },
+  {
+   "step": 900,
+   "train": 1.8279351949691773,
+   "val": 1.9424351668357849
+  },
+  {
+   "step": 1000,
+   "train": 1.7940749907493592,
+   "val": 1.9274315023422242
+  },
+  {
+   "step": 1100,
+   "train": 1.7581441402435303,
+   "val": 1.9108783769607545
+  },
+  {
+   "step": 1200,
+   "train": 1.7168325567245484,
+   "val": 1.8846629524230958
+  },
+  {
+   "step": 1300,
+   "train": 1.7180637836456298,
+   "val": 1.867988657951355
+  },
+  {
+   "step": 1400,
+   "train": 1.6938828802108765,
+   "val": 1.8642304968833923
+  },
+  {
+   "step": 1500,
+   "train": 1.67524756193161,
+   "val": 1.845319905281067
+  },
+  {
+   "step": 1600,
+   "train": 1.6610151958465575,
+   "val": 1.826050202846527
+  },
+  {
+   "step": 1700,
+   "train": 1.6540842413902284,
+   "val": 1.7973258924484252
+  },
+  {
+   "step": 1800,
+   "train": 1.6320007300376893,
+   "val": 1.803461902141571
+  },
+  {
+   "step": 1900,
+   "train": 1.6179661560058594,
+   "val": 1.7855134558677674
+  },
+  {
+   "step": 2000,
+   "train": 1.6052635836601257,
+   "val": 1.7785410261154175
+  },
+  {
+   "step": 2100,
+   "train": 1.6077883529663086,
+   "val": 1.7776178336143493
+  },
+  {
+   "step": 2200,
+   "train": 1.6066423177719116,
+   "val": 1.782675745487213
+  },
+  {
+   "step": 2300,
+   "train": 1.5901831340789796,
+   "val": 1.774027831554413
+  },
+  {
+   "step": 2400,
+   "train": 1.582011070251465,
+   "val": 1.754491319656372
+  },
+  {
+   "step": 2500,
+   "train": 1.571604449748993,
+   "val": 1.775487232208252
+  },
+  {
+   "step": 2600,
+   "train": 1.5566748905181884,
+   "val": 1.7344800806045533
+  },
+  {
+   "step": 2700,
+   "train": 1.5577480030059814,
+   "val": 1.7388635277748108
+  },
+  {
+   "step": 2800,
+   "train": 1.5444403624534606,
+   "val": 1.7219975996017456
+  },
+  {
+   "step": 2900,
+   "train": 1.5458032512664794,
+   "val": 1.7186416459083558
+  },
+  {
+   "step": 3000,
+   "train": 1.529451858997345,
+   "val": 1.7226571345329285
+  },
+  {
+   "step": 3100,
+   "train": 1.5395592951774597,
+   "val": 1.6974402475357055
+  },
+  {
+   "step": 3200,
+   "train": 1.5238059735298157,
+   "val": 1.7162785458564758
+  },
+  {
+   "step": 3300,
+   "train": 1.5166565680503845,
+   "val": 1.7161622405052186
+  },
+  {
+   "step": 3400,
+   "train": 1.524838192462921,
+   "val": 1.7200775599479676
+  },
+  {
+   "step": 3500,
+   "train": 1.5014809274673462,
+   "val": 1.7214552474021911
+  },
+  {
+   "step": 3600,
+   "train": 1.510297212600708,
+   "val": 1.7037866306304932
+  },
+  {
+   "step": 3700,
+   "train": 1.5016809344291686,
+   "val": 1.7078103280067445
+  },
+  {
+   "step": 3800,
+   "train": 1.4926882314682006,
+   "val": 1.6923796463012695
+  },
+  {
+   "step": 3900,
+   "train": 1.4941263270378113,
+   "val": 1.7068881154060365
+  },
+  {
+   "step": 4000,
+   "train": 1.485674834251404,
+   "val": 1.6894387221336364
+  },
+  {
+   "step": 4100,
+   "train": 1.4796376037597656,
+   "val": 1.6904031467437743
+  },
+  {
+   "step": 4200,
+   "train": 1.4842521238327027,
+   "val": 1.694209656715393
+  },
+  {
+   "step": 4300,
+   "train": 1.476989221572876,
+   "val": 1.6921104979515076
+  },
+  {
+   "step": 4400,
+   "train": 1.4822719168663026,
+   "val": 1.68775940656662
+  },
+  {
+   "step": 4500,
+   "train": 1.4675416779518127,
+   "val": 1.671694347858429
+  },
+  {
+   "step": 4600,
+   "train": 1.4767604231834413,
+   "val": 1.6659914779663085
+  },
+  {
+   "step": 4700,
+   "train": 1.4646625900268555,
+   "val": 1.684087851047516
+  },
+  {
+   "step": 4800,
+   "train": 1.4684157037734986,
+   "val": 1.6501331615447998
+  },
+  {
+   "step": 4900,
+   "train": 1.4576105093955993,
+   "val": 1.6704565978050232
+  },
+  {
+   "step": 5000,
+   "train": 1.4471828436851502,
+   "val": 1.6553117513656617
+  }
+ ],
+ "samples": [
+  {
+   "step": 0,
+   "text": "\n?3BfAqB;W,;tmkl pD,E'3$njpzJjJQphMusstMfbwb.\nwZo!oehuiwivv'GNe'TFqtlXxVozrf HZQdKQcoA!x;u?N-?vE&IHnXG$, NfvEBywVjvtyj!r.-bzfhvZf.x;k?g$PefvTxCyZjNFZVciZOlzWhFI-CN?OfT'ocJF3pvVF??D&'DwGNNkkjMR&--3f abGdlfc HEDGXTECQ;wVuRz?G;?!UlK$datyBju;VhGZiDQCjMbvmNatH?C-QFPsmHKvukZCHHlDciHGKYcPhs&:rPTesZE?UEffiZ?"
+  },
+  {
+   "step": 100,
+   "text": "\nISI Aor; I thel pe hartojingher acesst fowe.\nWhomouterdive'd e's qtlornon f thir dcotexe sthee? d n pe, ntharis ththethar thh m th k, t thetrCay thakoin lenghit, s fo onJofoth?\n\nWind t Ike cere-n ks ld dc sthethathishelyo ceselom at Beu; horin a toverath?\nS hesthevuth, ply a toucote mrnersipincofen?"
+  },
+  {
+   "step": 200,
+   "text": "\nSer And; I thel pe hart jingheriecusst fowe.\nWhom ghed iver ingeaptlornons o tir icorexe mor\n\nEnd no me nord is tote thyous houges ko toecet\nCiesthakcin lengeve, sof IonJ hot yous yout I agorrey f as bric sen.\nThatishely GRord, my t Be bas I tha toverat ano hesthevutr,\nHindimers ghe wrners pis fain?"
+  },
+  {
+   "step": 300,
+   "text": "\nSer ABRDWICETkA pe ER:\nIjuch frieck st fore.\nWhom gheimiver ing aptlove, af thir doo pich th\nOf an to sen soris tote tryo whave th ko to fit\nCay thakein lenge fame fo on thet Fors or there ceres fomeld fo shist.\n\nQENSTENO:\nWed, my to ku; holin a to meat alo hesther the placime\nYorde wroves pis farer"
+  },
+  {
+   "step": 500,
+   "text": "\nSer And trither pess and.\n\nJRANRYIULIOMEO:\nI wood gherdive' teake tlove, af thie\nAcousing the End no me not thertatertry-be houghs kighte\nptrCayster cing, sheir, shforechtentiought in\nI ke crres for lesecas hem.\n\nQUNIO:\nO, thell, at Be baghting, to meaten o hestare the placime\nAngsed riersiess farer"
+  },
+  {
+   "step": 750,
+   "text": "\nWelf? sharlt king shall jize frientss\nMather ago! gher it; a not qulove, af thir done.\n\nSend\n\nELINGER:\nIn so you the try-buth math kighterst\nCame hatch thend if me fore Jomptiests of theye crres for les\ncomentife and uss scondlem all kumagelie a to meate?\nSarmsty a the placime! cried roves, from in\n"
+  },
+  {
+   "step": 1000,
+   "text": "\nWererest I the can Edward in trients.\nMybatt ago out is thou east thought fratiend?\nAnd I now End no me not thertter troo the math do the\nparsiester ciould he farstfe on then your now\nI kagerself know lic the trait; he so cond,\nThat Be basheir a to meate wo hesty vince,\nAndimers the wroves pitch in\n"
+  },
+  {
+   "step": 1500,
+   "text": "\nWell once be king shall juch true,\nAs debatt againsted it, them all on on fortiend?\nAnd I the fair come not the tot throubles math king the repected of them,\nIf me for conspen?\n\nDUKE VINCENTIO:\nA know laciten the pise of Gived of all kinghts!\n\nCAMILLO:\nHave heself your placience give: nors, face, no"
+  },
+  {
+   "step": 2000,
+   "text": "\nWell once, there that hajust tipe,\nAs let thy go out is of them?\n\nMARCIUS:\nWho duke thine thee?\nIf thee not the joty traibles math king to true:\nAh, charden, I coulf, on then Fors or they gorself kand,\nAn this fratish'd which a my lords;\nMore partorm and wo heady a king lacies\nAnd shorners pircy in\n"
+  },
+  {
+   "step": 3000,
+   "text": "\nServant to the cause and put tipe,\nAs Marcius, or ghosious a resoutly none of it\nAccept out we with you not the jote true what fest,\nProtch a fallow of the heartherf, on their thus ruth;\nWhose you she likes he from when which a my lord,\nThou death ame, and arms, be the placience the wrongs,\nAnd find"
+  },
+  {
+   "step": 4000,
+   "text": "\nWell? what there that has in this time frather's out.\nI'll presentleman, an and granted us,\nWe with you not the tother prother'st not to cheel\nThe much old hear, sife on their that in provourself kand,\nIs this faither's once! a my lord, as I death;\nAre and are my vintuckly a touchse or lessiful are\n"
+  },
+  {
+   "step": 5000,
+   "text": "\nWell, shall me in shame justicious, steet thy go!\n\nMENENIUS:\nI'll tell on for it is this sorrow and pleant,\nBy cover thy bofh match of tempt\nCause their leady is softence honour,\nNor Grant cry--ce as blacks he faults,\nWho cannot date the holings to mean.\n\nSecond Maughter:\nMarcius, sir, Trulier fair\n"
+  }
+ ]
+}
