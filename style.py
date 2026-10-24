@@ -1,20 +1,20 @@
-"""House style for every build. Import this; don't restyle per build."""
+"""Figure style, matched to the explorer page: ink on paper, colored-pencil accents. Two themes, one per page theme."""
 import matplotlib as mpl
 
-BG = "#0e1116"
-FG = "#d7dae0"
-MUTED = "#6b7280"
-GRID = "#1f2630"
-# one accent per series, muted so nothing screams
-ACCENTS = ["#e07a5f", "#81b29a", "#8ab4f8", "#f2cc8f"]
-WARN = "#e0605f"
-
-FIGSIZE_16x9 = (12.8, 7.2)
-FIGSIZE_4x5 = (8.64, 10.8)
+THEMES = {
+    'light': dict(BG="#ffffff", FG="#17191c", MUTED="#5c616a", GRID="#e3e5e8",
+                  ACCENTS=["#c62f28", "#2e7a4c", "#2457c9", "#b07a1f"], SEQ="magma_r"),
+    'dark': dict(BG="#1a1b1e", FG="#ebe9e4", MUTED="#a0a4ab", GRID="#2c2e33",
+                 ACCENTS=["#ff6a5c", "#5fc28a", "#7aa2ff", "#e0b45a"], SEQ="magma"),
+}
+BG = FG = MUTED = GRID = SEQ = None
+ACCENTS = []
 DPI = 150
 
 
-def apply():
+def use(theme):
+    """ set the module's colors for `theme` and apply them to matplotlib """
+    globals().update(THEMES[theme])
     mpl.rcParams.update({
         "figure.facecolor": BG,
         "axes.facecolor": BG,

@@ -2,6 +2,7 @@
 timelapse, and docs/data.json for the explorer page. Runs on CPU in about a minute. """
 import json
 import os
+import sys
 import numpy as np
 import torch
 from torch.nn import functional as F
@@ -10,7 +11,9 @@ from matplotlib import animation
 import style
 from model import GPT, block_size, n_layer, n_head, load_data
 
-style.apply()
+THEME = sys.argv[1] if len(sys.argv) > 1 else 'dark'  # figures for the page's dark or light theme
+SFX = '' if THEME == 'dark' else '_light'
+style.use(THEME)
 os.makedirs('docs/figures', exist_ok=True)
 os.makedirs('docs', exist_ok=True)
 torch.manual_seed(0)
@@ -74,6 +77,11 @@ for r in heads:
     print(f"L{r['layer']}H{r['head']}  Δ{r['delta']:+.3f}  self {r['self']:.2f}  prev {r['prev']:.2f}  space {r['space']:.2f}  dist {r['dist']:.1f}")
 
 # single heads barely matter, so switch off groups: whole layers, and all the previous-character heads at once
+def ink_on(rgba):
+    ''' dark or light text, whichever reads on this cell color '''
+    return '#111111' if 0.299 * rgba[0] + 0.587 * rgba[1] + 0.114 * rgba[2] > 0.5 else '#ffffff'
+
+
 def ablate(group):
     for l, h in group:
         model.blocks[l].sa.head_mask[h] = 0
@@ -96,11 +104,11 @@ for name, g in groups:
 
 fig, (ax, ax2) = plt.subplots(1, 2, figsize=(15, 6), gridspec_kw={'width_ratios': [1, 1.25]})
 vmax = delta.max()
-im = ax.imshow(delta, cmap='magma', vmin=0, vmax=vmax)
+im = ax.imshow(delta, cmap=style.SEQ, vmin=0, vmax=vmax)
 for l in range(n_layer):
     for h in range(n_head):
         ax.text(h, l, f'+{delta[l, h]:.3f}', ha='center', va='center', fontsize=12,
-                color=style.BG if delta[l, h] > 0.6 * vmax else style.FG)
+                color=ink_on(plt.get_cmap(style.SEQ)(delta[l, h] / vmax)))
 ax.set_xticks(range(n_head), [f'head {h}' for h in range(n_head)])
 ax.set_yticks(range(n_layer), [f'layer {l}' for l in range(n_layer)])
 ax.set_title(f'Val loss increase, one head switched off\n(baseline {base:.3f})', loc='left')
@@ -116,7 +124,7 @@ for i, v in enumerate(vals_g):
 ax2.set_title('Val loss increase, groups switched off (log scale)', loc='left')
 ax2.grid(axis='x', color=style.GRID)
 fig.tight_layout()
-fig.savefig('docs/figures/ablation.png', dpi=style.DPI)
+fig.savefig(f'docs/figures/ablation{SFX}.png', dpi=style.DPI)
 
 fig, axes = plt.subplots(n_layer, n_head, figsize=(12, 9), sharex=True, sharey=True)
 for l in range(n_layer):
@@ -129,7 +137,7 @@ for a in axes[-1]:
     a.set_xlabel('how far back (0 = itself)')
 fig.suptitle('Where each head looks: average attention by distance', x=0.01, ha='left', fontsize=14)
 fig.tight_layout()
-fig.savefig('docs/figures/attention_by_offset.png', dpi=style.DPI)
+fig.savefig(f'docs/figures/attention_by_offset{SFX}.png', dpi=style.DPI)
 
 # ---------- 3. logit lens: decode the residual stream after each block ----------
 val_text = ''.join(chars[i] for i in val_data[:20000].tolist())
@@ -155,7 +163,7 @@ ax.imshow(P, cmap='viridis', vmin=0, vmax=1, aspect='auto')
 for d in range(n_layer + 1):
     for t in range(48):
         ax.text(t, d, top[d][t], ha='center', va='center', fontsize=9, family='monospace',
-                color=style.BG if P[d, t] > 0.5 else style.FG)
+                color='#111111' if P[d, t] > 0.5 else '#ffffff')  # viridis runs dark to light in both themes
 ax.set_xticks(range(48), [show(c) for c in passage], family='monospace', fontsize=9)
 ax.set_yticks(range(n_layer + 1), ['embedding'] + [f'after block {l + 1}' for l in range(n_layer)])
 ax.set_title("Logit lens: the model's best guess for the next character at each depth "
@@ -168,7 +176,7 @@ ax2.set_title('loss', loc='left')
 for i, v in enumerate(lens_loss):
     ax2.text(v, i, f' {v:.2f}', va='center', fontsize=9)
 fig.tight_layout()
-fig.savefig('docs/figures/logit_lens.png', dpi=style.DPI)
+fig.savefig(f'docs/figures/logit_lens{SFX}.png', dpi=style.DPI)
 
 # ---------- 4. embeddings ----------
 def pca2(W):
@@ -192,12 +200,12 @@ a1.legend(handles=[plt.Line2D([], [], ls='', marker='s', color=style.ACCENTS[k],
           frameon=False, fontsize=9, loc='best')
 a1.set_title('Character embeddings (first 2 principal components)', loc='left')
 a1.set_xticks([]); a1.set_yticks([])
-im = a2.imshow((pos @ pos.T).numpy(), cmap='magma', vmin=-1, vmax=1)
+im = a2.imshow((pos @ pos.T).numpy(), cmap=style.SEQ, vmin=-1, vmax=1)
 a2.set_title('Position embeddings: cosine similarity', loc='left')
 a2.set_xlabel('position'); a2.set_ylabel('position')
 fig.colorbar(im, ax=a2, fraction=0.046, pad=0.04)
 fig.tight_layout()
-fig.savefig('docs/figures/embeddings.png', dpi=style.DPI)
+fig.savefig(f'docs/figures/embeddings{SFX}.png', dpi=style.DPI)
 
 # ---------- 5. training timelapse ----------
 log = json.load(open('train_log.json'))
@@ -226,9 +234,9 @@ def frame(i):
 
 frames = [i for i in range(len(log['samples'])) for _ in range(3)]  # hold each checkpoint ~1.5 s
 anim = animation.FuncAnimation(fig, frame, frames=frames + [frames[-1]] * 6)
-anim.save('docs/figures/timelapse.gif', writer=animation.PillowWriter(fps=2), dpi=80)
+anim.save(f'docs/figures/timelapse{SFX}.gif', writer=animation.PillowWriter(fps=2), dpi=80)
 frame(len(log['samples']) - 1)
-fig.savefig('docs/figures/timelapse_final.png', dpi=style.DPI)
+fig.savefig(f'docs/figures/timelapse_final{SFX}.png', dpi=style.DPI)
 
 # ---------- 6. data for the explorer page (the page runs the model itself; this is just stats + presets) ----------
 passages = []
