@@ -230,29 +230,14 @@ anim.save('docs/figures/timelapse.gif', writer=animation.PillowWriter(fps=2), dp
 frame(len(log['samples']) - 1)
 fig.savefig('docs/figures/timelapse_final.png', dpi=style.DPI)
 
-# ---------- 6. data for the explorer page ----------
+# ---------- 6. data for the explorer page (the page runs the model itself; this is just stats + presets) ----------
 passages = []
 pos_ = 0
-while len(passages) < 12:
+while len(passages) < 8:
     s = val_text.index('\n\n', pos_) + 2
     pos_ = s + 300
     passages.append(val_text[s:s + block_size])
-out = []
-with torch.no_grad():
-    for p in passages:
-        idx = torch.tensor([[chars.index(c) for c in p]])
-        logits, _ = model(idx)
-        a = model.attention()[:, :, 0]  # (L, H, T, T)
-        probs = F.softmax(logits[0], -1)
-        topv, topi = probs.topk(5, -1)
-        out.append({
-            'text': p,
-            # lower triangle only, row by row, quantized to 0..255
-            'att': [[[int(round(a[l, h, t, j].item() * 255)) for t in range(len(p)) for j in range(t + 1)]
-                     for h in range(n_head)] for l in range(n_layer)],
-            'top': [[[chars[topi[t, k].item()], round(topv[t, k].item(), 3)] for k in range(5)] for t in range(len(p))],
-        })
-json.dump({'n_layer': n_layer, 'n_head': n_head, 'base_loss': round(base, 4), 'heads': heads, 'groups': group_delta,
-           'lens_loss': [round(v, 3) for v in lens_loss], 'passages': out},
+json.dump({'base_loss': round(base, 4), 'heads': heads, 'groups': group_delta,
+           'lens_loss': [round(v, 3) for v in lens_loss], 'passages': passages},
           open('docs/data.json', 'w'), separators=(',', ':'))
 print('wrote docs/figures/ and docs/data.json')

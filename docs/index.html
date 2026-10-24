@@ -4,205 +4,470 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Attention Explorer</title>
+<meta name="description" content="A tiny GPT trained on Shakespeare, running live in your browser. Watch every attention head, switch heads off, and see what breaks.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <style>
 :root {
-  --bg: #f7f7f5; --panel: #ffffff; --fg: #1d2127; --muted: #6b7280; --line: #e3e4e8;
-  --heat: 224, 122, 95; --accent: #3d6fd9; --sel: #1d2127;
+  --bg: #0e1116; --panel: #141920; --panel2: #1a2029; --fg: #e4e6eb; --muted: #8b93a1; --faint: #5b6370; --line: #242b36;
+  --h0: #e07a5f; --h1: #81b29a; --h2: #8ab4f8; --h3: #f2cc8f; --accent: #8ab4f8; --sel: #f2cc8f; --off: #3a414c;
+  --heat: 224, 122, 95; --shadow: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px rgba(0,0,0,0.25);
 }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #0e1116; --panel: #151a21; --fg: #d7dae0; --muted: #8b93a1; --line: #252c37;
-    --heat: 224, 122, 95; --accent: #8ab4f8; --sel: #f2cc8f;
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f6f5f1; --panel: #ffffff; --panel2: #f3f2ee; --fg: #1c2027; --muted: #646b78; --faint: #9aa0aa; --line: #e3e1db;
+    --h0: #c8553d; --h1: #3f8f6b; --h2: #3d6fd9; --h3: #b7862b; --accent: #3d6fd9; --sel: #1c2027; --off: #d5d3cd;
+    --heat: 200, 85, 61; --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05);
   }
 }
-:root[data-theme="dark"] {
-  --bg: #0e1116; --panel: #151a21; --fg: #d7dae0; --muted: #8b93a1; --line: #252c37;
-  --heat: 224, 122, 95; --accent: #8ab4f8; --sel: #f2cc8f;
+:root[data-theme="light"] {
+  --bg: #f6f5f1; --panel: #ffffff; --panel2: #f3f2ee; --fg: #1c2027; --muted: #646b78; --faint: #9aa0aa; --line: #e3e1db;
+  --h0: #c8553d; --h1: #3f8f6b; --h2: #3d6fd9; --h3: #b7862b; --accent: #3d6fd9; --sel: #1c2027; --off: #d5d3cd;
+  --heat: 200, 85, 61; --shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.05);
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.55 system-ui, -apple-system, "Segoe UI", sans-serif; }
-main { max-width: 1040px; margin: 0 auto; padding: 32px 16px 64px; }
-h1 { font-size: 26px; margin: 0 0 6px; letter-spacing: -0.01em; }
-h2 { font-size: 17px; margin: 40px 0 10px; }
-p { margin: 0 0 12px; max-width: 70ch; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 15px/1.6 Inter, system-ui, -apple-system, sans-serif; }
+main { max-width: 1120px; margin: 0 auto; padding: 40px 16px 80px; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+code, .mono { font-family: "JetBrains Mono", ui-monospace, Menlo, monospace; }
+h1 { font-size: clamp(30px, 5vw, 44px); line-height: 1.1; margin: 0 0 12px; letter-spacing: -0.02em; font-weight: 700; }
+h2 { font-size: 22px; margin: 64px 0 6px; letter-spacing: -0.01em; }
+h3 { font-size: 13px; margin: 0 0 10px; color: var(--muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; }
+p { margin: 0 0 12px; max-width: 68ch; }
+.lede { font-size: 17px; color: var(--muted); max-width: 62ch; }
 .muted { color: var(--muted); }
-a { color: var(--accent); }
-.controls { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; margin: 22px 0 14px; }
-.group { display: flex; gap: 6px; align-items: center; }
-.group > span { color: var(--muted); font-size: 13px; margin-right: 4px; }
-button { font: inherit; font-size: 13px; color: var(--fg); background: var(--panel); border: 1px solid var(--line);
-  border-radius: 6px; padding: 4px 10px; cursor: pointer; }
+.top { display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; }
+.links { display: flex; gap: 16px; font-size: 14px; margin-top: 10px; flex-wrap: wrap; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); }
+button, .chip { font: inherit; font-size: 13px; color: var(--fg); background: var(--panel2); border: 1px solid var(--line);
+  border-radius: 999px; padding: 5px 12px; cursor: pointer; transition: border-color .15s, background .15s; white-space: nowrap; }
+button:hover, .chip:hover { border-color: var(--muted); }
 button.on { border-color: var(--sel); box-shadow: inset 0 0 0 1px var(--sel); }
-.layout { display: grid; grid-template-columns: 1fr 260px; gap: 18px; }
-@media (max-width: 760px) { .layout { grid-template-columns: 1fr; } }
-.layout > *, .grid > *, .controls > * { min-width: 0; }
-@media (max-width: 560px) { #text { font-size: 18px; } }
-.panel { background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 16px; }
-#text { font: 22px/1.9 ui-monospace, "SF Mono", Menlo, monospace; word-break: break-all; user-select: none; }
-#text span { padding: 2px 1px; border-radius: 3px; cursor: pointer; }
-#text span.q { outline: 2px solid var(--sel); outline-offset: 1px; }
-#text span.future { color: var(--muted); opacity: 0.45; }
-.ws { color: var(--muted); }
-.hint { font-size: 13px; color: var(--muted); margin-top: 10px; }
-.pred-row { display: grid; grid-template-columns: 28px 1fr 46px; gap: 8px; align-items: center; font-size: 14px; margin: 6px 0; }
-.pred-row code { font: 16px ui-monospace, Menlo, monospace; text-align: center; }
-.bar { height: 10px; background: var(--accent); border-radius: 3px; }
-.stat { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; border-bottom: 1px solid var(--line); }
-.stat:last-child { border-bottom: 0; }
-.grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
-@media (max-width: 560px) { .grid { grid-template-columns: repeat(2, 1fr); } }
-.mini { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px; cursor: pointer; }
-.mini.on { border-color: var(--sel); box-shadow: inset 0 0 0 1px var(--sel); }
-.mini canvas { width: 100%; aspect-ratio: 1; display: block; image-rendering: pixelated; border-radius: 4px; }
-.mini .lab { font-size: 12px; display: flex; justify-content: space-between; margin-top: 6px; color: var(--muted); }
-.mini .lab b { color: var(--fg); font-weight: 600; }
-figure { margin: 18px 0; }
-figure img { width: 100%; border-radius: 8px; border: 1px solid var(--line); }
-figcaption { font-size: 13px; color: var(--muted); margin-top: 6px; max-width: 75ch; }
+button:disabled { opacity: .5; cursor: default; }
+.btn-primary { background: var(--accent); color: var(--bg); border-color: transparent; font-weight: 600; padding: 7px 16px; }
+.btn-primary:hover { border-color: transparent; filter: brightness(1.08); }
+.icon-btn { padding: 6px 10px; line-height: 1; }
+
+/* playground */
+.play { display: grid; grid-template-columns: minmax(0, 1fr) 300px; margin-top: 28px; }
+.play-main { padding: 18px 20px 20px; border-right: 1px solid var(--line); min-width: 0; }
+.play-side { padding: 18px 18px 20px; min-width: 0; }
+@media (max-width: 860px) { .play { grid-template-columns: 1fr; } .play-main { border-right: 0; border-bottom: 1px solid var(--line); } }
+.inrow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+textarea { width: 100%; resize: vertical; min-height: 64px; font: 15px/1.5 "JetBrains Mono", monospace; color: var(--fg);
+  background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; outline: none; }
+textarea:focus { border-color: var(--accent); }
+.count { font-size: 12px; color: var(--faint); margin-left: auto; }
+.presets { display: flex; gap: 6px; flex-wrap: wrap; margin: 10px 0 4px; }
+.presets .chip { font-size: 12px; padding: 3px 10px; }
+.stage { position: relative; margin-top: 18px; padding-top: 64px; }
+#arcs { position: absolute; inset: 0; pointer-events: none; overflow: visible; }
+#text { position: relative; font: 500 clamp(18px, 2.6vw, 26px)/2.7 "JetBrains Mono", monospace; word-break: break-all; user-select: none; }
+#text .c { position: relative; display: inline-block; padding: 0 1px; border-radius: 4px; cursor: pointer; transition: background .12s; }
+#text .c::after { content: ""; position: absolute; left: 1px; right: 1px; bottom: 6px; height: 3px; border-radius: 2px; background: var(--surp, transparent); }
+#text .ws { color: var(--faint); }
+#text .q { outline: 2px solid var(--sel); outline-offset: 1px; }
+#text .future { opacity: .3; }
+.legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; color: var(--muted); margin-top: 6px; align-items: center; }
+.sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
+.seg { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
+.seg button { border: 0; border-radius: 0; background: transparent; padding: 4px 11px; }
+.seg button.on { background: var(--panel2); box-shadow: none; color: var(--fg); font-weight: 600; }
+.seg button:not(.on) { color: var(--muted); }
+.pred { display: grid; grid-template-columns: 26px 1fr 40px; gap: 8px; align-items: center; font-size: 13px; margin: 5px 0; }
+.pred code { font-size: 16px; text-align: center; }
+.bar { height: 8px; background: var(--accent); border-radius: 4px; transition: width .2s; }
+.pred .pct { text-align: right; color: var(--muted); font-variant-numeric: tabular-nums; }
+.lens { display: grid; grid-template-columns: 64px repeat(3, 1fr); gap: 4px; font-size: 12px; align-items: center; }
+.lens .lab { color: var(--muted); }
+.lens .cell { font-family: "JetBrains Mono", monospace; font-size: 13px; text-align: center; border-radius: 6px; padding: 3px 0;
+  background: rgba(var(--heat), var(--a)); }
+.side-sep { height: 1px; background: var(--line); margin: 18px 0; }
+.lossline { font-size: 13px; color: var(--muted); }
+.lossline b { color: var(--fg); font-variant-numeric: tabular-nums; }
+.up { color: var(--h0); } .down { color: var(--h1); }
+
+/* heads board */
+.board-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; }
+.grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+@media (max-width: 640px) { .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.mini { padding: 10px; border-radius: 12px; cursor: pointer; transition: border-color .15s, opacity .15s; position: relative; }
+.mini.sel { border-color: var(--sel); box-shadow: inset 0 0 0 1px var(--sel), var(--shadow); }
+.mini.dead canvas { opacity: .15; }
+.mini canvas { width: 100%; aspect-ratio: 1; display: block; image-rendering: pixelated; border-radius: 6px; background: var(--panel2); }
+.mini .row { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; gap: 6px; }
+.mini .name { font-weight: 600; font-size: 13px; }
+.mini .role { font-size: 11px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 6px; }
+.toggle { position: relative; width: 34px; height: 20px; flex: none; border-radius: 999px; background: var(--h1); border: 0; padding: 0; transition: background .15s; }
+.toggle::after { content: ""; position: absolute; top: 3px; left: 17px; width: 14px; height: 14px; border-radius: 50%; background: #fff; transition: left .15s; }
+.toggle.offs { background: var(--off); }
+.toggle.offs::after { left: 3px; }
+.dead-tag { position: absolute; top: 14px; left: 14px; font-size: 11px; font-weight: 700; letter-spacing: .08em; color: var(--muted); }
+
+/* generate */
+.gen { padding: 18px 20px; margin-top: 14px; }
+.gen-controls { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; }
+.gen-controls label { font-size: 13px; color: var(--muted); display: flex; gap: 8px; align-items: center; }
+input[type=range] { accent-color: var(--accent); width: 110px; }
+#out { margin-top: 14px; min-height: 140px; white-space: pre-wrap; word-break: break-word; font: 14px/1.65 "JetBrains Mono", monospace;
+  background: var(--panel2); border-radius: 10px; padding: 14px 16px; border: 1px solid var(--line); }
+#out .prompt { color: var(--muted); }
+#out .cursor { display: inline-block; width: 8px; height: 1.1em; background: var(--accent); vertical-align: -2px; animation: blink 1s steps(1) infinite; }
+@keyframes blink { 50% { opacity: 0; } }
+
+/* findings */
+.figs { display: grid; gap: 28px; margin-top: 18px; }
+figure { margin: 0; }
+figure img { width: 100%; border-radius: 12px; border: 1px solid var(--line); display: block; }
+figcaption { font-size: 14px; color: var(--muted); margin-top: 10px; max-width: 80ch; }
+figcaption b { color: var(--fg); }
+.refs { padding-left: 18px; }
+.refs li { margin: 8px 0; max-width: 85ch; }
+.refs .why { color: var(--muted); }
+footer { margin-top: 64px; padding-top: 18px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
+.loading { padding: 40px; text-align: center; color: var(--muted); font-size: 15px; }
 </style>
 </head>
 <body>
 <main>
-  <h1>Attention Explorer</h1>
-  <p class="muted">A 0.8M-parameter character-level GPT trained on Shakespeare, opened up. Pick a character and see which earlier characters each attention head reads from when predicting what comes next.</p>
-
-  <div class="controls">
-    <div class="group"><span>passage</span><button id="prev">←</button><span id="pidx" style="color:var(--fg);margin:0 4px"></span><button id="next">→</button></div>
-    <div class="group" id="layers"><span>layer</span></div>
-    <div class="group" id="heads"><span>head</span></div>
+  <div class="top">
+    <div>
+      <h1>Attention Explorer</h1>
+      <p class="lede">A 0.8M-parameter character-level GPT trained on Shakespeare. Pick a character and see which earlier characters each attention head reads from when predicting what comes next. The model runs in your browser, so you can also switch heads off and watch what breaks.</p>
+      <div class="links"><a href="https://github.com/gabrielmpr/attention-explorer">Code on GitHub</a><a href="#findings">Findings</a><a href="#related">Related work</a></div>
+    </div>
+    <button class="icon-btn" id="theme" title="Toggle light/dark" aria-label="Toggle light or dark theme">◐</button>
   </div>
 
-  <div class="layout">
-    <div class="panel">
-      <div id="text"></div>
-      <div class="hint">Hover or tap a character. Shading = how much the selected head, at that position, attends to each earlier character. Later characters are greyed out because the causal mask hides them.</div>
+  <section class="card play" id="play">
+    <div class="play-main">
+      <div class="inrow">
+        <h3 style="margin:0">Your text</h3>
+        <span class="count" id="count"></span>
+      </div>
+      <textarea id="input" maxlength="64" spellcheck="false" aria-label="Text for the model to read"></textarea>
+      <div class="presets" id="presets"></div>
+
+      <div class="inrow" style="margin-top:14px">
+        <div class="seg" id="mode"><button data-m="head" class="on">One head</button><button data-m="layer">Whole layer</button></div>
+        <div class="seg" id="layerSeg"></div>
+        <label class="legend" style="margin:0"><input type="checkbox" id="surp" checked> underline by surprise</label>
+      </div>
+
+      <div class="stage">
+        <svg id="arcs"></svg>
+        <div id="text" class="mono"><div class="loading">Loading the model (3.3 MB)…</div></div>
+      </div>
+      <div class="legend" id="legend"></div>
     </div>
-    <div class="panel">
-      <div class="muted" style="font-size:13px;margin-bottom:6px">After <code id="qchar"></code>, the model predicts</div>
+
+    <div class="play-side">
+      <h3>Next character after <code id="qchar"></code></h3>
       <div id="preds"></div>
-      <div class="muted" style="font-size:13px;margin:16px 0 6px">Selected head</div>
-      <div id="stats"></div>
+      <div class="side-sep"></div>
+      <h3>Logit lens: the guess at each depth</h3>
+      <div class="lens" id="lens"></div>
+      <div class="side-sep"></div>
+      <div class="lossline" id="loss"></div>
     </div>
-  </div>
+  </section>
 
-  <h2>All 16 heads on this passage</h2>
-  <p class="muted">Each square is one head's full attention matrix: row = the character doing the looking, column = the character looked at. Everything above the diagonal is the future, so it's empty. The line marks the selected character. Δ is how much validation loss rises when that head is switched off.</p>
+  <h2>The 16 heads</h2>
+  <div class="board-head">
+    <p class="muted" style="margin:0">Each square is one head's attention on your text: row = the character doing the looking, column = the character looked at. Click a head to trace it above. Flip the switch to turn it off; everything on the page, including generation, uses the model with that head removed.</p>
+    <div class="presets" id="maskPresets" style="margin:0"></div>
+  </div>
   <div class="grid" id="grid"></div>
 
-  <h2>What the heads do</h2>
-  <figure><img src="figures/attention_by_offset.png" alt="Average attention by distance for each head">
-    <figcaption>Average attention by distance. Layer 0 is almost all lookup: three heads read the previous character (80–89% of their attention) and one, L0H2, reads exactly two characters back. Layer 1 reads a window of 1–4 characters. Layers 2 and 3 spread out over the whole context, which is where word- and line-level information can come from.</figcaption></figure>
-  <figure><img src="figures/ablation.png" alt="Validation loss increase when each head is switched off">
-    <figcaption>Switching off any single head barely matters (+0.004 to +0.015). The previous-character heads cover for each other: knock out one and loss rises by at most 0.009, knock out all four together and it rises by 0.388. Early layers matter most: removing layer 0's attention costs 0.295, layer 3's only 0.038.</figcaption></figure>
-  <figure><img src="figures/logit_lens.png" alt="Logit lens">
-    <figcaption>Logit lens: decode the residual stream after each block with the final LayerNorm and output layer. Loss falls 3.51 → 2.76 → 2.14 → 1.80 → 1.64 with depth. By the last block the model knows a name in capitals ends in a colon and a newline, and that a capital follows the newline.</figcaption></figure>
-  <figure><img src="figures/embeddings.png" alt="Embeddings">
-    <figcaption>Left: the 65 character embeddings projected to 2-D. The structure is weak at this size; punctuation drifts to one corner, but vowels and consonants don't separate cleanly. Right: position embeddings are close to orthogonal to each other. With only 64 positions and 128 dimensions, the model gave each position its own direction instead of learning a smooth code.</figcaption></figure>
-  <figure><img src="figures/timelapse.gif" alt="Training timelapse">
-    <figcaption>Samples from the same random seed as training goes on.</figcaption></figure>
+  <h2>Make it write</h2>
+  <p class="muted">The model continues your text one character at a time, using whichever heads are switched on. Try it with every head on, then with the previous-character heads off.</p>
+  <div class="card gen">
+    <div class="gen-controls">
+      <button class="btn-primary" id="go">Continue writing</button>
+      <label>temperature <input type="range" id="temp" min="0.3" max="1.5" step="0.1" value="0.8"><span id="tempv" class="mono">0.8</span></label>
+      <span class="muted" style="font-size:13px" id="genNote"></span>
+    </div>
+    <div id="out"></div>
+  </div>
+
+  <h2 id="findings">Findings</h2>
+  <p class="muted">Measured on the trained model with PyTorch. The code that makes every figure is in <a href="https://github.com/gabrielmpr/attention-explorer/blob/main/analyze.py"><code>analyze.py</code></a>.</p>
+  <div class="figs">
+    <figure><img src="figures/attention_by_offset.png" alt="Average attention by distance for each head" loading="lazy">
+      <figcaption><b>Layer 0 looks up the last two characters.</b> Three heads put 80–89% of their attention on the previous character, and L0H2 puts 68% on the character two back. Layer 1 reads a 1–4 character window. Layers 2 and 3 spread out over the whole context.</figcaption></figure>
+    <figure><img src="figures/ablation.png" alt="Validation loss increase when heads are switched off" loading="lazy">
+      <figcaption><b>No single head matters, because they back each other up.</b> Switching off any one head raises validation loss by 0.004–0.015. Switch off one previous-character head and loss rises by at most 0.009; switch off all four together and it rises by 0.388. Early layers do most of the work: layer 0's attention is worth 0.295, layer 3's only 0.038.</figcaption></figure>
+    <figure><img src="figures/logit_lens.png" alt="Logit lens" loading="lazy">
+      <figcaption><b>The prediction sharpens with depth.</b> Decoding the residual stream after each block, loss falls 3.51 → 2.76 → 2.14 → 1.80 → 1.64. By the last block the model knows a name in capitals ends in a colon and a newline, and that a capital follows the newline.</figcaption></figure>
+    <figure><img src="figures/embeddings.png" alt="Character and position embeddings" loading="lazy">
+      <figcaption><b>The embeddings are less structured than you'd hope at this size.</b> Punctuation drifts to one corner, but vowels and consonants don't separate cleanly. The 64 position embeddings are close to orthogonal: the model gave each position its own direction instead of learning a smooth code.</figcaption></figure>
+    <figure><img src="figures/timelapse.gif" alt="Training timelapse" loading="lazy">
+      <figcaption><b>Training.</b> Samples from the same random seed at each checkpoint, from noise to word shapes to Shakespeare-shaped text. Final validation loss 1.66.</figcaption></figure>
+  </div>
+
+  <h2 id="related">Related work</h2>
+  <p class="muted">None of these techniques is new. This project reproduces known results on a model small enough to run in a web page.</p>
+  <ul class="refs">
+    <li>Michel, Levy &amp; Neubig 2019, <a href="https://arxiv.org/abs/1905.10650"><i>Are Sixteen Heads Really Better than One?</i></a> <span class="why">Most heads can be removed one at a time with little loss. The single-head ablations here agree.</span></li>
+    <li>Voita et al. 2019, <a href="https://arxiv.org/abs/1905.09418"><i>Analyzing Multi-Head Self-Attention: Specialized Heads Do the Heavy Lifting</i></a>. <span class="why">Found positional heads attending to adjacent tokens, like layer 0's previous-character heads.</span></li>
+    <li>Elhage et al. 2021, <a href="https://transformer-circuits.pub/2021/framework/index.html"><i>A Mathematical Framework for Transformer Circuits</i></a>, and Olsson et al. 2022, <a href="https://arxiv.org/abs/2209.11895"><i>In-context Learning and Induction Heads</i></a>. <span class="why">Previous-token heads are the first half of an induction head.</span></li>
+    <li>nostalgebraist 2020, <a href="https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens"><i>interpreting GPT: the logit lens</i></a>, and Belrose et al. 2023, <a href="https://arxiv.org/abs/2303.08112"><i>the tuned lens</i></a>. <span class="why">The layer-by-layer decoding used above.</span></li>
+    <li>Vig 2019, <a href="https://arxiv.org/abs/1906.05714"><i>BertViz</i></a>, and <a href="https://github.com/TransformerLensOrg/TransformerLens">TransformerLens</a>. <span class="why">The standard tools for viewing attention and running these experiments on real models.</span></li>
+    <li>Karpathy 2023, <a href="https://www.youtube.com/watch?v=kCc8FmEb1nY"><i>Let's build GPT</i></a>. <span class="why">The architecture and training setup.</span></li>
+  </ul>
+
+  <footer>Built by <a href="https://github.com/gabrielmpr">Gabriel Aguilar</a>. The page runs the same forward pass as <code>model.py</code>, checked against PyTorch to within 10⁻⁶.</footer>
 </main>
 
+<script src="transformer.js"></script>
 <script>
-let D, P = 0, L = 0, H = 0, Q = 20;
 const $ = id => document.getElementById(id);
+const css = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
 const show = c => c === '\n' ? '⏎' : c === ' ' ? '·' : c;
+const HEADS = ['--h0', '--h1', '--h2', '--h3'];
+let M, S, R, mask, ids = [], L = 0, H = 2, Q = 0, mode = 'head', fullLoss = null, generating = false;
 
-// unpack row t of the lower triangle
-const row = (p, l, h, t) => D.passages[p].att[l][h].slice(t * (t + 1) / 2, t * (t + 1) / 2 + t + 1).map(v => v / 255);
-
-function buttons(id, n, get, set) {
-  const g = $(id);
-  for (let i = 0; i < n; i++) {
-    const b = document.createElement('button');
-    b.textContent = i;
-    b.onclick = () => { set(i); render(); };
-    g.appendChild(b);
-  }
-  return () => [...g.querySelectorAll('button')].forEach((b, i) => b.classList.toggle('on', i === get()));
+// ---------- head roles, from the PyTorch measurements ----------
+function role(h) {
+  const p = h.profile, top = p.indexOf(Math.max(...p));
+  if (h.prev > 0.6) return 'previous char';
+  if (top === 2 && p[2] > 0.5) return 'two back';
+  if (h.dist < 4) return 'local window';
+  return 'wide context';
 }
 
-let markLayers, markHeads;
+// ---------- model ----------
+function run() {
+  R = ids.length ? GPT.forward(M, ids, mask) : null;
+  if (!R) return;
+  if (mask.every(r => r.every(v => v))) fullLoss = loss(R);
+  else if (fullLoss === null) fullLoss = loss(GPT.forward(M, ids, mask.map(r => r.map(() => 1)), { lens: false }));
+}
+function loss(r) {
+  if (r.T < 2) return null;
+  let s = 0;
+  for (let t = 0; t < r.T - 1; t++) s -= Math.log(r.probs[t * M.V + ids[t + 1]]);
+  return s / (r.T - 1);
+}
 
+// ---------- rendering ----------
 function renderText() {
-  const text = D.passages[P].text, w = row(P, L, H, Q);
-  const mx = Math.max(...w);
-  $('text').innerHTML = '';
-  [...text].forEach((c, j) => {
-    const s = document.createElement('span');
+  const box = $('text');
+  box.innerHTML = '';
+  if (!R) { box.innerHTML = '<span class="muted" style="font-size:15px">Type something above.</span>'; $('arcs').innerHTML = ''; return; }
+  const surp = $('surp').checked;
+  const a = R.att[L][H], T = R.T;
+  let mx = 1e-9;
+  for (let j = 0; j <= Q; j++) mx = Math.max(mx, a[Q * T + j]);
+  ids.forEach((id, j) => {
+    const c = M.chars[id], s = document.createElement('span');
+    s.className = 'c' + (c === ' ' || c === '\n' ? ' ws' : '') + (j === Q ? ' q' : '') + (j > Q ? ' future' : '');
     s.textContent = show(c);
-    if (c === ' ' || c === '\n') s.classList.add('ws');
-    if (j <= Q) s.style.background = `rgba(var(--heat), ${(w[j] / mx) * 0.85})`;
-    else s.classList.add('future');
-    if (j === Q) s.classList.add('q');
-    s.title = j <= Q ? `attention ${(w[j] * 100).toFixed(1)}%` : 'masked (future)';
-    s.onmouseenter = () => { if (Q !== j) { Q = j; render(); } };
-    s.onclick = () => { Q = j; render(); };
-    $('text').appendChild(s);
-    if (c === '\n') $('text').appendChild(document.createElement('br'));
+    if (mode === 'head' && j <= Q) s.style.background = `rgba(var(--heat), ${(a[Q * T + j] / mx) * 0.55})`;
+    if (surp && j > 0) {
+      const p = R.probs[(j - 1) * M.V + id], k = Math.min(-Math.log(p) / 5, 1);
+      s.style.setProperty('--surp', `rgba(var(--heat), ${0.15 + 0.85 * k})`);
+      s.title = `the model gave "${show(c)}" ${(p * 100).toFixed(1)}%`;
+    }
+    s.onmouseenter = () => { if (Q !== j && !generating) { Q = j; renderLive(); } };
+    s.onclick = () => { Q = j; renderLive(); };
+    box.appendChild(s);
+    if (c === '\n') box.appendChild(document.createElement('br'));
   });
+  requestAnimationFrame(drawArcs);
+}
+
+function drawArcs() {
+  const svg = $('arcs'), stage = svg.parentElement;
+  svg.innerHTML = '';
+  if (!R) return;
+  const sr = stage.getBoundingClientRect(), spans = [...$('text').querySelectorAll('.c')];
+  svg.setAttribute('viewBox', `0 0 ${sr.width} ${sr.height}`);
+  const pt = i => { const r = spans[i].getBoundingClientRect(); return [r.left + r.width / 2 - sr.left, r.top + r.height * 0.28 - sr.top]; };
+  const [qx, qy] = pt(Q), T = R.T;
+  const heads = mode === 'head' ? [H] : [0, 1, 2, 3];
+  for (const h of heads) {
+    const a = R.att[L][h], col = css(HEADS[h]), dead = !mask[L][h];
+    for (let j = 0; j < Q; j++) {
+      const w = a[Q * T + j];
+      if (w < 0.03) continue;
+      const [x, y] = pt(j), d = Math.hypot(qx - x, qy - y), lift = Math.min(18 + d * 0.35, 58);
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', `M${x},${y} Q${(x + qx) / 2},${Math.min(y, qy) - lift} ${qx},${qy}`);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', col);
+      p.setAttribute('stroke-width', (0.8 + 5 * w).toFixed(2));
+      p.setAttribute('stroke-opacity', dead ? 0.18 : (0.25 + 0.75 * w).toFixed(2));
+      p.setAttribute('stroke-linecap', 'round');
+      if (dead) p.setAttribute('stroke-dasharray', '3 4');
+      svg.appendChild(p);
+    }
+  }
+}
+
+function renderLegend() {
+  const lg = $('legend');
+  if (mode === 'head') {
+    lg.innerHTML = `<span><span class="sw" style="background:${css(HEADS[H])}"></span>L${L} H${H} · ${role(S.heads[L * 4 + H])}${mask[L][H] ? '' : ' · switched off'}</span><span>arc width = attention weight</span><span>underline = how surprised the model was by that character</span>`;
+  } else {
+    lg.innerHTML = [0, 1, 2, 3].map(h => `<span><span class="sw" style="background:${css(HEADS[h])}"></span>H${h} ${role(S.heads[L * 4 + h])}${mask[L][h] ? '' : ' (off)'}</span>`).join('');
+  }
 }
 
 function renderSide() {
-  const p = D.passages[P];
-  $('qchar').textContent = `"${show(p.text[Q])}"`;
-  $('preds').innerHTML = p.top[Q].map(([c, v]) =>
-    `<div class="pred-row"><code>${show(c)}</code><div class="bar" style="width:${Math.max(v * 100, 1)}%"></div><span>${(v * 100).toFixed(0)}%</span></div>`).join('');
-  const s = D.heads[L * D.n_head + H];
-  $('stats').innerHTML = [
-    ['val loss if switched off', `+${s.delta.toFixed(3)}`],
-    ['attention to itself', `${(s.self * 100).toFixed(0)}%`],
-    ['to the previous char', `${(s.prev * 100).toFixed(0)}%`],
-    ['to spaces / newlines', `${(s.space * 100).toFixed(0)}%`],
-    ['mean distance back', `${s.dist.toFixed(1)} chars`],
-  ].map(([k, v]) => `<div class="stat"><span class="muted">${k}</span><span>${v}</span></div>`).join('');
+  if (!R) { $('preds').innerHTML = ''; $('lens').innerHTML = ''; $('loss').innerHTML = ''; $('qchar').textContent = ''; return; }
+  $('qchar').textContent = `"${show(M.chars[ids[Q]])}"`;
+  const V = M.V, row = R.probs.subarray(Q * V, Q * V + V);
+  const top = [...row].map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 7);
+  const actual = Q + 1 < ids.length ? ids[Q + 1] : -1;
+  $('preds').innerHTML = top.map(([p, i]) =>
+    `<div class="pred"><code style="${i === actual ? 'color:var(--sel);font-weight:700' : ''}">${show(M.chars[i])}</code><div><div class="bar" style="width:${Math.max(p * 100, 1)}%"></div></div><span class="pct">${(p * 100).toFixed(0)}%</span></div>`).join('')
+    + (actual >= 0 ? `<div class="muted" style="font-size:12px;margin-top:6px">Actual next: <code style="color:var(--sel)">${show(M.chars[actual])}</code>, given ${(row[actual] * 100).toFixed(1)}%</div>` : '');
+  const names = ['embed', 'block 1', 'block 2', 'block 3', 'block 4'];
+  $('lens').innerHTML = R.lens.map((lp, d) => {
+    const r = lp.subarray(Q * V, Q * V + V);
+    const t3 = [...r].map((p, i) => [p, i]).sort((a, b) => b[0] - a[0]).slice(0, 3);
+    return `<span class="lab">${names[d]}</span>` + t3.map(([p, i]) =>
+      `<span class="cell" style="--a:${(0.08 + 0.8 * p).toFixed(2)}" title="${(p * 100).toFixed(1)}%">${show(M.chars[i])}</span>`).join('');
+  }).join('');
+  const lo = loss(R), off = mask.flat().filter(v => !v).length;
+  if (lo === null) { $('loss').innerHTML = 'Type at least two characters to see the loss.'; return; }
+  let html = `Loss on your text: <b>${lo.toFixed(2)}</b>`;
+  if (off && fullLoss !== null) {
+    const d = lo - fullLoss;
+    html += `<br>with all heads on: <b>${fullLoss.toFixed(2)}</b> <span class="${d > 0 ? 'up' : 'down'}">(${d > 0 ? '+' : ''}${d.toFixed(2)})</span><br>${off} head${off > 1 ? 's' : ''} off`;
+  }
+  $('loss').innerHTML = html;
 }
 
 function renderGrid() {
-  const g = $('grid'), T = D.passages[P].text.length;
+  const g = $('grid');
   if (!g.children.length) {
-    for (let l = 0; l < D.n_layer; l++) for (let h = 0; h < D.n_head; h++) {
-      const d = document.createElement('div');
-      d.className = 'mini';
-      d.innerHTML = `<canvas width="${T}" height="${T}"></canvas><div class="lab"><b>L${l} H${h}</b><span>Δ +${D.heads[l * D.n_head + h].delta.toFixed(3)}</span></div>`;
-      d.onclick = () => { L = l; H = h; render(); };
+    for (let l = 0; l < 4; l++) for (let h = 0; h < 4; h++) {
+      const d = document.createElement('div'), st = S.heads[l * 4 + h];
+      d.className = 'mini card';
+      d.innerHTML = `<canvas width="64" height="64"></canvas><span class="dead-tag"></span>
+        <div class="row"><span class="name"><span class="dot" style="background:var(${HEADS[h]})"></span>L${l} H${h}</span>
+        <button class="toggle" aria-label="Switch L${l} H${h} on or off"></button></div>
+        <div class="row"><span class="role">${role(st)}</span><span class="role">Δ +${st.delta.toFixed(3)}</span></div>`;
+      d.onclick = () => { L = l; H = h; mode = 'head'; renderAll(); };
+      d.querySelector('.toggle').onclick = e => { e.stopPropagation(); mask[l][h] = mask[l][h] ? 0 : 1; update(); };
       g.appendChild(d);
     }
   }
-  const heat = getComputedStyle(document.documentElement).getPropertyValue('--heat').split(',').map(Number);
+  const heat = css('--heat').split(',').map(Number), T = R ? R.T : 0;
   [...g.children].forEach((d, k) => {
-    const l = Math.floor(k / D.n_head), h = k % D.n_head;
-    d.classList.toggle('on', l === L && h === H);
-    const cv = d.querySelector('canvas'), ctx = cv.getContext('2d'), img = ctx.createImageData(T, T);
-    for (let t = 0; t < T; t++) {
-      const w = row(P, l, h, t);
-      for (let j = 0; j <= t; j++) {
-        const i = (t * T + j) * 4, a = Math.sqrt(w[j]);
-        img.data[i] = heat[0]; img.data[i + 1] = heat[1]; img.data[i + 2] = heat[2]; img.data[i + 3] = 255 * a;
-      }
+    const l = k >> 2, h = k & 3, cv = d.querySelector('canvas');
+    d.classList.toggle('sel', l === L && (mode === 'layer' || h === H));
+    d.classList.toggle('dead', !mask[l][h]);
+    d.querySelector('.toggle').classList.toggle('offs', !mask[l][h]);
+    d.querySelector('.dead-tag').textContent = mask[l][h] ? '' : 'OFF';
+    if (!R) return;
+    cv.width = cv.height = T;
+    const ctx = cv.getContext('2d'), img = ctx.createImageData(T, T), a = R.att[l][h];
+    for (let t = 0; t < T; t++) for (let j = 0; j <= t; j++) {
+      const i = (t * T + j) * 4;
+      img.data[i] = heat[0]; img.data[i + 1] = heat[1]; img.data[i + 2] = heat[2]; img.data[i + 3] = 255 * Math.sqrt(a[t * T + j]);
     }
     ctx.putImageData(img, 0, 0);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--sel');
-    ctx.globalAlpha = 0.5; ctx.fillRect(0, Q, T, 0.6); ctx.globalAlpha = 1;
+    if (l === L) { ctx.fillStyle = css('--sel'); ctx.globalAlpha = 0.6; ctx.fillRect(0, Q, T, Math.max(T / 64, 0.6)); ctx.globalAlpha = 1; }
   });
 }
 
-function render() {
-  $('pidx').textContent = `${P + 1} / ${D.passages.length}`;
-  Q = Math.min(Q, D.passages[P].text.length - 1);
-  markLayers(); markHeads(); renderText(); renderSide(); renderGrid();
+function renderControls() {
+  [...$('mode').children].forEach(b => b.classList.toggle('on', b.dataset.m === mode));
+  [...$('layerSeg').children].forEach((b, i) => b.classList.toggle('on', i === L));
+  const off = mask.flat().filter(v => !v).length;
+  $('genNote').textContent = off ? `${off} head${off > 1 ? 's' : ''} switched off` : 'all 16 heads on';
 }
 
-fetch('data.json').then(r => r.json()).then(d => {
-  D = d;
-  // open on the head that matters most
-  const best = D.heads.reduce((a, b) => b.delta > a.delta ? b : a);
-  L = best.layer; H = best.head;
-  markLayers = buttons('layers', D.n_layer, () => L, i => L = i);
-  markHeads = buttons('heads', D.n_head, () => H, i => H = i);
-  $('prev').onclick = () => { P = (P + D.passages.length - 1) % D.passages.length; render(); };
-  $('next').onclick = () => { P = (P + 1) % D.passages.length; render(); };
-  render();
-});
+function renderLive() { renderText(); renderLegend(); renderSide(); renderGrid(); }
+function renderAll() { renderControls(); renderLive(); }
+
+function update() {
+  run();
+  Q = Math.min(Q, Math.max(ids.length - 1, 0));
+  renderAll();
+}
+
+function setText(s, q) {
+  s = [...s].filter(c => c in M.stoi).join('').slice(0, 64);
+  $('input').value = s;
+  ids = GPT.encode(M, s);
+  $('count').textContent = `${ids.length} / 64 characters (the model's context)`;
+  fullLoss = null;
+  Q = q ?? Math.max(ids.length - 1, 0);
+  update();
+}
+
+// ---------- generation ----------
+async function generate() {
+  if (generating) { generating = false; return; }
+  if (!ids.length) return;
+  generating = true;
+  $('go').textContent = 'Stop';
+  const temp = +$('temp').value, out = $('out');
+  const prompt = ids.map(i => M.chars[i]).join('');
+  out.innerHTML = '<span class="prompt"></span><span class="gen-t"></span><span class="cursor"></span>';
+  out.querySelector('.prompt').textContent = prompt;
+  let ctx = [...ids], text = '';
+  for (let n = 0; n < 240 && generating; n++) {
+    const r = GPT.forward(M, ctx.slice(-64), mask, { lens: false });
+    const V = M.V, row = r.probs.subarray((r.T - 1) * V, r.T * V);
+    let z = 0; const w = new Float64Array(V);
+    for (let i = 0; i < V; i++) { w[i] = Math.pow(row[i], 1 / temp); z += w[i]; }
+    let u = Math.random() * z, k = 0;
+    while (k < V - 1 && (u -= w[k]) > 0) k++;
+    ctx.push(k); text += M.chars[k];
+    out.querySelector('.gen-t').textContent = text;
+    await new Promise(requestAnimationFrame);
+  }
+  out.querySelector('.cursor')?.remove();
+  generating = false;
+  $('go').textContent = 'Continue writing';
+}
+
+// ---------- wiring ----------
+function setMask(fn) { mask = [0, 1, 2, 3].map(l => [0, 1, 2, 3].map(h => fn(l, h, S.heads[l * 4 + h]) ? 1 : 0)); update(); }
+
+async function init() {
+  const [man, buf, stats] = await Promise.all([
+    fetch('model.json').then(r => r.json()), fetch('model.bin').then(r => r.arrayBuffer()), fetch('data.json').then(r => r.json())]);
+  M = GPT.load(man, buf);
+  S = stats;
+  mask = [0, 1, 2, 3].map(() => [1, 1, 1, 1]);
+  L = 2; H = 0; mode = 'layer'; // open on a layer whose heads reach far back, so the arcs fan out
+
+  const name = p => { const n = p.split(':')[0]; return n[0] + n.slice(1).toLowerCase(); };
+  const presets = [['Romeo', 'ROMEO:\nBut soft, what light through yonder window breaks?'], ['Hamlet', 'HAMLET:\nTo be, or not to be, that is the question:'],
+    ...S.passages.filter((p, i, a) => a.findIndex(q => name(q) === name(p)) === i).slice(0, 4).map(p => [name(p), p])];
+  presets.forEach(([n, t]) => { const b = document.createElement('button'); b.className = 'chip'; b.textContent = n; b.onclick = () => setText(t); $('presets').appendChild(b); });
+
+  const mp = [['All on', () => true], ['Previous-char heads off', (l, h, s) => s.prev <= 0.6], ['Layer 0 off', l => l !== 0],
+    ['Only layer 0', l => l === 0], ['All off', () => false]];
+  mp.forEach(([n, f]) => { const b = document.createElement('button'); b.textContent = n; b.onclick = () => setMask(f); $('maskPresets').appendChild(b); });
+
+  for (let l = 0; l < 4; l++) { const b = document.createElement('button'); b.textContent = `layer ${l}`; b.onclick = () => { L = l; renderAll(); }; $('layerSeg').appendChild(b); }
+  [...$('mode').children].forEach(b => b.onclick = () => { mode = b.dataset.m; renderAll(); });
+  $('surp').onchange = renderText;
+  let tm; $('input').oninput = () => { clearTimeout(tm); tm = setTimeout(() => setText($('input').value), 90); };
+  $('temp').oninput = () => $('tempv').textContent = (+$('temp').value).toFixed(1);
+  $('go').onclick = generate;
+  window.addEventListener('resize', () => requestAnimationFrame(drawArcs));
+  $('out').innerHTML = '<span class="muted">Output appears here.</span>';
+  setText(presets[0][1]);
+}
+
+$('theme').onclick = () => {
+  const cur = document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark');
+  document.documentElement.dataset.theme = cur === 'light' ? 'dark' : 'light';
+  if (R) renderAll();
+};
+init().catch(e => { $('text').innerHTML = `<div class="loading">Couldn't load the model: ${e.message}</div>`; });
 </script>
 </body>
 </html>

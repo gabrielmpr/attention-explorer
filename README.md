@@ -2,7 +2,7 @@
 
 A 0.8M-parameter character-level GPT trained on Tiny Shakespeare, then opened up: which characters each attention head reads, which heads the model actually needs, and how the prediction forms layer by layer.
 
-**[Interactive explorer →](https://gabrielmpr.github.io/attention-explorer/)** Hover any character to see where each of the 16 heads looks from it.
+**[Live demo →](https://gabrielmpr.github.io/attention-explorer/)** The model runs in your browser. Type any text and watch where each of the 16 heads looks, switch heads off and see the predictions change, then make it write with those heads removed.
 
 ![Training timelapse](docs/figures/timelapse.gif)
 
@@ -26,6 +26,17 @@ The model is the decoder-only transformer from Karpathy's *Let's build GPT* (4 l
 
 ![Embeddings](docs/figures/embeddings.png)
 
+## Related work
+
+None of these techniques is new; this reproduces known results on a model small enough to run in a web page.
+
+- Michel, Levy & Neubig 2019, [*Are Sixteen Heads Really Better than One?*](https://arxiv.org/abs/1905.10650): most heads can be removed one at a time with little loss. Finding 2 agrees.
+- Voita et al. 2019, [*Analyzing Multi-Head Self-Attention*](https://arxiv.org/abs/1905.09418): positional heads that attend to adjacent tokens, like layer 0 here.
+- Elhage et al. 2021, [*A Mathematical Framework for Transformer Circuits*](https://transformer-circuits.pub/2021/framework/index.html), and Olsson et al. 2022, [*In-context Learning and Induction Heads*](https://arxiv.org/abs/2209.11895): previous-token heads are the first half of an induction head.
+- nostalgebraist 2020, [*interpreting GPT: the logit lens*](https://www.lesswrong.com/posts/AcKRB8wDpdaN6v6ru/interpreting-gpt-the-logit-lens), and Belrose et al. 2023, [*the tuned lens*](https://arxiv.org/abs/2303.08112): finding 3's method.
+- Vig 2019, [BertViz](https://arxiv.org/abs/1906.05714), and [TransformerLens](https://github.com/TransformerLensOrg/TransformerLens): the standard tools for this on real models. The difference here is that the model runs client-side, so you can intervene (ablate heads, generate) instead of only viewing attention.
+- Karpathy 2023, [*Let's build GPT*](https://www.youtube.com/watch?v=kCc8FmEb1nY): architecture and training setup.
+
 ## How the measurements work
 
 - **Ablation.** Each attention block has a `head_mask` buffer. Setting an entry to 0 zeroes that head's output before the output projection. Validation loss is measured on the same fixed 3,200 windows every time, so differences come from the ablation, not sampling noise.
@@ -39,6 +50,7 @@ curl -O https://raw.githubusercontent.com/karpathy/char-rnn/master/data/tinyshak
 pip install torch matplotlib pillow
 python train.py     # ~5 min on an M2 (MPS); writes ckpt.pt and train_log.json
 python analyze.py   # ~1 min on CPU; writes docs/figures/ and docs/data.json
+python export_weights.py   # writes docs/model.bin + model.json for the live demo
 ```
 
 `ckpt.pt` is checked in, so `analyze.py` runs without training. To view the explorer locally: `cd docs && python -m http.server`, then open http://localhost:8000.
@@ -50,4 +62,6 @@ python analyze.py   # ~1 min on CPU; writes docs/figures/ and docs/data.json
 | `model.py` | The transformer, with hooks for attention capture and head ablation |
 | `train.py` | Training loop; saves samples at fixed steps with the same seed for the timelapse |
 | `analyze.py` | Ablations, attention profiles, logit lens, embeddings, timelapse, explorer data |
-| `docs/` | The explorer page (GitHub Pages) and all figures |
+| `export_weights.py` | Exports the weights for the browser, plus a PyTorch reference the JS forward pass is checked against |
+| `docs/transformer.js` | The same forward pass as `model.py` in plain JavaScript (matches PyTorch to within 10⁻⁶) |
+| `docs/` | The live demo page (GitHub Pages) and all figures |
